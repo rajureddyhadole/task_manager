@@ -62,3 +62,36 @@ def edit_task(request, task_id):
       'status': task.status
     }
   })
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def view_tasks(request):
+
+  tasks = Task.objects.filter(user=request.user)
+  
+  data = []
+
+  for task in tasks:
+    data.append({
+      'task_id': task.id,
+      'title': task.title,
+      'description': task.description,
+      'status': task.status
+    })
+
+  return Response(data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_task(request, task_id):
+  
+  task = get_object_or_404(Task, id=task_id, user=request.user)
+
+  task.delete()
+
+  return Response({
+    'message': "task deleted successfully."
+  })
