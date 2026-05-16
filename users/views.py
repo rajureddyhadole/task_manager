@@ -5,51 +5,54 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status
+from .serializers import RegisterSerializer, LoginSerializer
 # Create your views here.
 
 @api_view(['POST'])
 def register(request):
-  username = request.data.get('username')
-  password = request.data.get('password')
-  email = request.data.get('email')
-  phone = request.data.get('phone')
-  age = request.data.get('age')
+  
+  serializer = RegisterSerializer(data=request.data)
 
-  CustomUser.objects.create_user(
-    username=username,
-    password=password,
-    email=email,
-    phone=phone,
-    age=age,
-  )
+  if serializer.is_valid():
 
-  return Response({
-    'message': 'You have been registered. Welcome!'
-  })
+    serializer.save()
+
+    return Response({
+      'message': 'User registered sucessfully',
+      'data': serializer.data
+    })
+
+  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 def login_view(request):
 
-  username = request.data.get('username')
-  password = request.data.get('password')
+  serializer = LoginSerializer(data=request.data)
 
-  user = authenticate(
-    username=username,
-    password=password,
-  )
+  if serializer.is_valid():
 
-  if user is not None:
-    refresh = RefreshToken.for_user(user)
+    username = serializer.validated_data['username']
+    password = serializer.validated_data['password']
 
-    return Response({
-      'access': str(refresh.access_token),
-      'refresh': str(refresh),
-      'user': {
-        'id': user.id,
-        'username': user.username,
-        'email': user.email
-      }
-    })
+    user = authenticate(
+      username=username,
+      password=password,
+    )
+
+    if user is not None:
+      refresh = RefreshToken.for_user(user)
+
+      return Response({
+        'access': str(refresh.access_token),
+        'refresh': str(refresh),
+        'user': {
+          'id': user.id,
+          'username': user.username,
+          'email': user.email
+        }
+      })
+    
+    return Response({'error': 'Invalid credetials'}, status=status.HTTP_401_UNAUTHORIZED)
   
-  return Response({'error': 'Invalid credetials'}, status=status.HTTP_401_UNAUTHORIZED)
+  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
